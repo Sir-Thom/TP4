@@ -61,8 +61,23 @@ void iterer_rev(Noeud<int> *n) {
   cout << (*itrev); // pour ne pas manquer le begin()
   cout << endl;
 }
+void testIterationInverse() {
+  Noeud<int> *racine = new Noeud<int>(1);
+  Noeud<int> *n3 = racine->ajouter_enfant(3);
+  Noeud<int> *n2 = racine->ajouter_enfant(2);
+
+
+  Noeud<int>::iterator it = racine->end();
+  --it; // décrémente l'itérateur pour pointer vers le dernier élément
+  while (it != racine->begin()) {
+    std::cout << *it << std::endl;
+    --it; // décrémente l'itérateur pour pointer vers l'élément précédent
+  }
+  std::cout << *it << std::endl; // affiche le premier élément
+}
 
 int main() {
+  //testIterationInverse();
   // ici on construit l'arbre en exemple
   Noeud<int> *racine = new Noeud<int>(13);
   Noeud<int> *n3 = racine->ajouter_enfant(3);
