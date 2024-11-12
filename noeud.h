@@ -11,6 +11,23 @@ private:
   Noeud *parent;                // parent du Noeud, possiblement nullptr
   std::vector<Noeud *> enfants; // liste des enfants du Noeud
 
+  static Noeud<TYPE>* findFirstNode(Noeud<TYPE>* node) {
+    if (!node) return nullptr;
+    while (!node->enfants.empty()) {
+      node = node->enfants[0]; // Go to the left-most child
+    }
+    return node;
+  }
+ static Noeud<TYPE> *findLastNode(Noeud<TYPE> *node) {
+   if (!node) return nullptr;
+
+   // Ensure we don't go into a loop by checking the number of children
+   while (!node->enfants.empty()) {
+     node = node->enfants.back(); // Go to the last child
+   }
+
+   return node;
+  }
   // Vous pouvez ajouter des fonctions privées, au besoin - mais PAS de
   // fonctions publiques ni de variable membre
 
@@ -57,338 +74,312 @@ private:
   // membres Je recommande de maintenir au moins 3 variables: le noeud qui a
   // initié l'itération, le noeud courant, un bool qui dit si on est à end ou
   // pas.
-
-   Noeud<TYPE> *findLastNode(Noeud<TYPE> *node) {
-   if (!node){
-    this->is_end = true;
-     return nullptr;
-   } 
-   
-    while (!node->enfants.empty()) {
-        node = node->enfants.back();  
+  Noeud<TYPE> *findPrevNode(Noeud<TYPE> *node) {
+    if (!node || node == root) {
+      return nullptr;
     }
-    return node;
+
+    Noeud<TYPE>* parent = node->parent;
+    if (parent) {
+      auto& siblings = parent->enfants;
+      auto it = std::find(siblings.begin(), siblings.end(), node);
+      if (it != siblings.begin()) {
+        return findLastNode(*(it - 1));
+      } else {
+        return parent;
+      }
+    } else {
+      return findLastNode(node);
+    }
   }
-Noeud<TYPE>* findParent(Noeud<TYPE>* root, Noeud<TYPE>* node) {
-    if (!root || !node) return nullptr;
 
-    // Recherche dans l'arbre pour trouver le parent
-    for (auto& enfant : root->enfants) {
-        if (enfant == node) {
-            return root;  // Le parent est trouvé
-        }
-        Noeud<TYPE>* parent = findParent(enfant, node);
-        if (parent) return parent;  // Le parent a été trouvé dans l'un des sous-arbres
-    }
-
-    return nullptr;  // Aucun parent trouvé
-}
-
-
-Noeud<TYPE>* findPrevNode(Noeud<TYPE>* node) {
-  
-
-    if (!node) return nullptr;
-
-    // Si le nœud a des enfants, remonter au dernier enfant exploré
-    if (!node->enfants.empty()) {
-        return node->enfants[current->enfants.size() - 1];
-    }
-
-    // Sinon, remonter au parent
-    Noeud<TYPE>* parent = findParent(root, current);
-    while (parent && parent->enfants[0] == current) {
-        // Remonter jusqu'à ce que le parent n'ait pas encore visité cet enfant
-        current = parent;
-        parent = findParent(root, current);
-    }
-
-    return parent;
-}
-
-  
   // Trouve le nœud suivant dans le parcours post-ordre
   Noeud<TYPE> *findNextNode(Noeud<TYPE> *node) {
-    if (!node || !node->parent) return nullptr;
+    if (!node || !node->parent) {
+      return nullptr;
+    }
 
     auto &siblings = node->parent->enfants;
     auto it = std::find(siblings.begin(), siblings.end(), node);
-    if (it == siblings.end()) return nullptr;
 
-    if (++it != siblings.end()) {
-      node = *it;
-      while (!node->enfants.empty()) {
-        node = node->enfants[0];
+    if (it != siblings.end()) {
+      ++it;
+      if (it != siblings.end()) {
+        return findFirstNode(*it);
       }
-      return node;
     }
-
     return node->parent;
   }
 
 public:
   // À ajouter: constructeurs, destructeur, constructeur par copie (seulement si
-iterator(Noeud<TYPE> *start)
-    : root(start), current(start), is_end(false) {
-    // Descente vers le nœud le plus à gauche (le plus profond)
-    if (current) {
-        while (!current->enfants.empty()) {
-            current = current->enfants[0];  // Aller au premier enfant
-        }
-    } else {
-        is_end = true;  // Si l'arbre est vide, on est à la fin
-    }
+  explicit iterator(Noeud<TYPE> *start);
+  iterator(Noeud<TYPE> *start, bool is_end);
+  iterator &operator++(); // incrémente l'itérateur.
+  iterator
+  operator++(int i); // incrémente l'itérateur.  Le paramètre i est inutile.
+  iterator &operator--(); // décrémente l'itérateur.
+  iterator
+  operator--(int i); // décrémente l'itérateur.  Le paramètre i est inutile.
+
+  TYPE &
+  operator*(); // retourne la valeur associée au Noeud pointé par l'itérateur
+  bool
+  operator==(const Noeud::iterator &it); // vérifie si l'itérateur est égal à it
+  bool operator!=(
+      const Noeud::iterator &it); // vérifie si l'itérateur est différent de it
 };
 
-    
-    iterator(Noeud<TYPE> * racine, bool est_end);
-    iterator &operator++(); // incrémente l'itérateur.
-    iterator operator++(
-        int i); // incrémente l'itérateur.  Le paramètre i est inutile.
-    iterator &operator--(); // décrémente l'itérateur.
-    iterator operator--(
-        int i); // décrémente l'itérateur.  Le paramètre i est inutile.
-
-    TYPE &
-    operator*(); // retourne la valeur associée au Noeud pointé par l'itérateur
-    bool operator==(
-        const Noeud::iterator &it); // vérifie si l'itérateur est égal à it
-    bool operator!=(const Noeud::iterator
-                        &it); // vérifie si l'itérateur est différent de it
-  };
-
-  /********************************************************
-  Implémentation de la classe Noeud
-  ********************************************************/
-
-  /**
-   * Constructeur principal de Noeud.  val est la valeur associée au Noeud
-   * À la construction, le parent est nullptr.
-   */
-  template <typename TYPE> Noeud<TYPE>::Noeud(const TYPE &valeur) {
-    this->valeur = valeur;
-    this->parent = nullptr;
-  }
-
-  /**
-   * Constructeur par copie.  On doit copier toute la structure.
-   */
-  template <typename TYPE> Noeud<TYPE>::Noeud(const Noeud &source) {
-    *this = source;
-  }
-
-  /**
-  Affectateur =.  this devient une copie de source.
-  **/
-  template <typename TYPE>
-  Noeud<TYPE> &Noeud<TYPE>::operator=(const Noeud &source) {
-    if (this == &source)
-      return *this;
-
-    this->valeur = source.valeur;
-    for (size_t i = 0; i < source.get_nb_enfants(); i++) {
-      Noeud *enfant = new Noeud(*(source.enfants[i]));
-      enfant->parent = this;
-      this->enfants.push_back(enfant);
-    }
-
-    return *this;
-  }
-
-  /**
-   * Destructeur.  Chaque est responsable de supprimer ses enfants.
-   */
-  template <typename TYPE> Noeud<TYPE>::~Noeud() {
-    for (size_t i = 0; i < enfants.size(); i++) {
-      delete enfants[i]; // entraîne une chaine de suppression chez les
-                         // descendants
-    }
-    // question de réflexion: pourquoi on ne delete pas this?  Comment la racine
-    // va-t-elle se supprimer?
-  }
-
-  /**
-   * Ajoute un enfant à la fin de la liste d'enfants, et le retourne.
-   * val est la valeur associée au nouveau Noeud.
-   * Le parent du nouveau Noeud est affecté au Noeud courant.
-   */
-  template <typename TYPE>
-  Noeud<TYPE> *Noeud<TYPE>::ajouter_enfant(const TYPE &valeur) {
-    Noeud *n = new Noeud(valeur);
-    n->parent = this;
-    this->enfants.push_back(n);
-    return n;
-  }
-
-  /**
-   * Retourne une référence sur la valeur associée au Noeud.  On peut ensuite
-   * modifier val.
-   */
-  template <typename TYPE> TYPE &Noeud<TYPE>::val() { return valeur; }
-
-  /**
-   * Retourne le nombre d'enfants du Noeud.
-   */
-  template <typename TYPE> size_t Noeud<TYPE>::get_nb_enfants() const {
-    return enfants.size();
-  }
-
-  /**
-   * Retourne le i-ème enfant (le premier est indicé à 0).
-   * C'est du C++, donc on ne fait aucune vérification.
-   */
-  template <typename TYPE> Noeud<TYPE> *Noeud<TYPE>::get_enfant(size_t i) {
-    return enfants[i];
-  }
-
-  /**
-  Supprime tout le sous - arbre enraciné en le i - ème enfant.
-  */
-  template <typename TYPE> void Noeud<TYPE>::supprimer_enfant(size_t i) {
-
-    delete enfants[i];
-    enfants.erase(enfants.begin() + i);
-  }
-
-  template <typename TYPE> void Noeud<TYPE>::afficher_postordre() const {
-    for (size_t i = 0; i < enfants.size(); i++) {
-      enfants[i]->afficher_postordre();
-    }
-
-    std::cout << valeur << " ";
-  }
-
-  /**
-   * Retourne le début un itérateur postordre sur l'arbre.
-   * Le début devrait donc pointer sur le Noeud le plus "à gauche".
-   */template <typename TYPE>
-typename Noeud<TYPE>::iterator Noeud<TYPE>::begin() {
-  // Trouver le premier élément de l'arbre
-  if (!enfants.empty()) {
-    return iterator(this);
-  } else {
-    // Si l'arbre est vide, retourner un itérateur en état "fin"
-    return iterator(this, true);
-  }
-}
-  
-
-  /**
-   * Retourne un itérateur représentant la fin de l'arbre.
-   * La fin n'est pas la même chose que le dernier élément.
-   */
-  template <typename TYPE> typename Noeud<TYPE>::iterator Noeud<TYPE>::end() {
-    // À implémenter
-    
-    return iterator(nullptr, true);
-  }
-
-  /********************************************************
-  Implémentation de la classe Noeud::iterator
-  ********************************************************/
-
-  /*
-  À ajouter: implémentation des fonctions de l'itérateur
-  Puisque iterator est une classe imbriquée, votre compilateur peut avoir du mal
-  à identifier les noms de classe Le mieux est d'en spécifier un maximum, par
-  exemple pour le ++: template <typename TYPE> typename Noeud<TYPE>::iterator
-  Noeud<TYPE>::iterator::operator++(int i)
-  */
-
-  /*Fait passer l’itérateur au prochain noeud à visiter dans le parcours
-  postordre. L’état interne de l’itérateur doit être modifié. Vous devez avoir
-  l’incrémentation pré-fixe et l’incrémentation post-fixe. Le comportement de
-  monnoeud->end()++ n’est pas défini.*/
-  template <typename TYPE>
-Noeud<TYPE>::iterator::iterator(Noeud<TYPE>* start, bool is_end)
-    : root(start), current(nullptr), is_end(is_end) {
-    if (is_end) {
-        current = findLastNode(root);
-    } else {
-        current = start;
-        while (!current->enfants.empty()) {
-            current = current->enfants[0];
-        }
-    }
+/********************************************************
+Implémentation de la classe Noeud
+********************************************************/
+/**
+ * Constructeur principal de Noeud.  val est la valeur associée au Noeud
+ * À la construction, le parent est nullptr.
+ */
+template <typename TYPE> Noeud<TYPE>::Noeud(const TYPE &valeur) {
+  this->valeur = valeur;
+  this->parent = nullptr;
 }
 
+/**
+ * Constructeur par copie.  On doit copier toute la structure.
+ */
+template <typename TYPE> Noeud<TYPE>::Noeud(const Noeud &source) {
+  *this = source;
+}
 
-  template <typename TYPE>
-  typename Noeud<TYPE>::iterator &Noeud<TYPE>::iterator::operator++() {
-    
-
-        if (is_end)
-        return *this;
-
-    if (current == nullptr) {
-        is_end = true;
-        return *this;
-    }
-
-    current = findNextNode(current);
-
-    if (current == nullptr) {
-        is_end = true;
-    }
-
-    return *this;
-  }
-
-  template <typename TYPE>
-  typename Noeud<TYPE>::iterator Noeud<TYPE>::iterator::operator++(int i) {
-    iterator tmp(*this);
-    ++(*this);
-    return tmp;
-  }
+/**
+Affectateur =.  this devient une copie de source.
+**/
 template <typename TYPE>
-typename Noeud<TYPE>::iterator& Noeud<TYPE>::iterator::operator--() {
-    if (is_end) {
-        current = findLastNode(root);
-        is_end = false;
-    } else {
-        current = findPrevNode(current);
-        if (current == nullptr) {
-            is_end = true;
-        }
-    }
+Noeud<TYPE> &Noeud<TYPE>::operator=(const Noeud &source) {
+  if (this == &source)
     return *this;
 
+  this->valeur = source.valeur;
+  for (size_t i = 0; i < source.get_nb_enfants(); i++) {
+    Noeud *enfant = new Noeud(*(source.enfants[i]));
+    enfant->parent = this;
+    this->enfants.push_back(enfant);
+  }
+
+  return *this;
+}
+
+/**
+ * Destructeur.  Chaque est responsable de supprimer ses enfants.
+ */
+template <typename TYPE> Noeud<TYPE>::~Noeud() {
+  for (size_t i = 0; i < enfants.size(); i++) {
+    delete enfants[i]; // entraîne une chaine de suppression chez les
+                       // descendants
+  }
+  // question de réflexion: pourquoi on ne delete pas this?  Comment la racine
+  // va-t-elle se supprimer?
+}
+
+/**
+ * Ajoute un enfant à la fin de la liste d'enfants, et le retourne.
+ * val est la valeur associée au nouveau Noeud.
+ * Le parent du nouveau Noeud est affecté au Noeud courant.
+ */
+template <typename TYPE>
+Noeud<TYPE> *Noeud<TYPE>::ajouter_enfant(const TYPE &valeur) {
+  Noeud *n = new Noeud(valeur);
+  n->parent = this;
+  this->enfants.push_back(n);
+  return n;
+}
+
+/**
+ * Retourne une référence sur la valeur associée au Noeud.  On peut ensuite
+ * modifier val.
+ */
+template <typename TYPE> TYPE &Noeud<TYPE>::val() { return valeur; }
+
+/**
+ * Retourne le nombre d'enfants du Noeud.
+ */
+template <typename TYPE> size_t Noeud<TYPE>::get_nb_enfants() const {
+  return enfants.size();
+}
+
+/**
+ * Retourne le i-ème enfant (le premier est indicé à 0).
+ * C'est du C++, donc on ne fait aucune vérification.
+ */
+template <typename TYPE> Noeud<TYPE> *Noeud<TYPE>::get_enfant(size_t i) {
+  return enfants[i];
+}
+
+/**
+Supprime tout le sous - arbre enraciné en le i - ème enfant.
+*/
+template <typename TYPE> void Noeud<TYPE>::supprimer_enfant(size_t i) {
+
+  delete enfants[i];
+  enfants.erase(enfants.begin() + i);
+}
+
+template <typename TYPE> void Noeud<TYPE>::afficher_postordre() const {
+  for (size_t i = 0; i < enfants.size(); i++) {
+    enfants[i]->afficher_postordre();
+  }
+
+  std::cout << valeur << " ";
+}
+
+/**
+ * Retourne le début un itérateur postordre sur l'arbre.
+ * Le début devrait donc pointer sur le Noeud le plus "à gauche".
+ */
+template <typename TYPE> typename Noeud<TYPE>::iterator Noeud<TYPE>::begin() {
+  // À implémenter
+  return iterator(this);
+}
+
+/**
+ * Retourne un itérateur représentant la fin de l'arbre.
+ * La fin n'est pas la même chose que le dernier élément.
+ */
+template <typename TYPE> typename Noeud<TYPE>::iterator Noeud<TYPE>::end() {
+  // À implémenter
+  return iterator(this,true);
+}
+
+/********************************************************
+Implémentation de la classe Noeud::iterator
+********************************************************/
+
+/*
+À ajouter: implémentation des fonctions de l'itérateur
+Puisque iterator est une classe imbriquée, votre compilateur peut avoir du mal
+à identifier les noms de classe Le mieux est d'en spécifier un maximum, par
+exemple pour le ++: template <typename TYPE> typename Noeud<TYPE>::iterator
+Noeud<TYPE>::iterator::operator++(int i)
+*/
+
+/*Fait passer l’itérateur au prochain noeud à visiter dans le parcours
+postordre. L’état interne de l’itérateur doit être modifié. Vous devez avoir
+l’incrémentation pré-fixe et l’incrémentation post-fixe. Le comportement de
+monnoeud->end()++ n’est pas défini.*/
+
+template <typename TYPE>
+Noeud<TYPE>::iterator::iterator(Noeud<TYPE> *start)
+    : root(start), current(start), is_end(false) {
+  if (!is_end && current) {
+    // Move to the left-most child (post-order)
+    while (!current->enfants.empty()) {
+      current = current->enfants[0];  // Move to the left-most child
+    }
+  }
+}
+
+template <typename TYPE>
+Noeud<TYPE>::iterator::iterator(Noeud<TYPE> *start, bool is_end)
+    : root(start), current(findLastNode(start)), is_end(is_end) {}
+
+template <typename TYPE>
+typename Noeud<TYPE>::iterator &Noeud<TYPE>::iterator::operator++() {
+  if (is_end) return *this;
+
+  // If we are at the root node, mark as end
+  if (current == root) {
+    is_end = true;
+    return *this;
+  }
+
+  // Move to the next node in post-order
+  Noeud<TYPE> *parent = current->parent;
+  if (parent) {
+    auto& siblings = parent->enfants;
+    auto it = std::find(siblings.begin(), siblings.end(), current);
+
+    // If there is a next sibling, move to the left-most child of that sibling
+    if (it != siblings.end() - 1) {
+      current = *(it + 1);
+      while (!current->enfants.empty()) {
+        current = current->enfants[0]; // Go to the left-most child
+      }
+    } else {
+      // Otherwise, move up to the parent
+      current = parent;
+    }
+  } else {
+    // No parent means we are at the root or a leaf node, set as end
+    current = nullptr;
+    is_end = true;
+  }
+  return *this;
 }
 
 
-
-
-
-  template <typename TYPE>
-  typename Noeud<TYPE>::iterator Noeud<TYPE>::iterator::operator--(int i) {
-    iterator tmp(*this);
-    --(*this);
-    return tmp;
-  }
-
-  template <typename TYPE>
-  bool Noeud<TYPE>::iterator::operator==(const Noeud<TYPE>::iterator &it) {
-    if (is_end && it.is_end)
-      return true;
-    if (is_end || it.is_end)
-      return false;
-    return current == it.current && root == it.root;
-  }
-
-  template <typename TYPE>
-  bool Noeud<TYPE>::iterator::operator!=(const Noeud<TYPE>::iterator &it) {
-    return !(*this == it);
-  }
 template <typename TYPE>
-TYPE &Noeud<TYPE>::iterator::operator*() {
-  if (is_end) {
-    // Ne pas lancer d'exception si l'itérateur est en état "fin"
-    return *(TYPE*)nullptr;
-  } else if (current == nullptr) {
-    throw std::out_of_range("L'itérateur est à la fin, aucune valeur à dereferencer");
-  } else {
-    return current->valeur;
+typename Noeud<TYPE>::iterator Noeud<TYPE>::iterator::operator++(int i) {
+  iterator tmp(*this);
+  ++(*this);
+  return tmp;
+}
+template <typename TYPE>
+typename Noeud<TYPE>::iterator &Noeud<TYPE>::iterator::operator--() {
+   if (current == root && !is_end) {
+    // If we're at the root, we have completed the traversal, so mark as "end".
+    is_end = true;
+  }else if (is_end) {
+    is_end = false;
+    current = root;
+    // Start at the right-most child
+    while (!current->enfants.empty()) {
+        current = current->enfants.back();
+    }
+}
+   else {
+    Noeud<TYPE>* parent = current->parent;
+    auto& siblings = parent->enfants;
+    auto it = std::find(siblings.begin(), siblings.end(), current);
+
+    // Move to the previous sibling, then go down to the right-most child
+    if (it != siblings.begin()) {
+      current = *(it - 1); // Move to the previous sibling
+      while (!current->enfants.empty()) {
+        current = current->enfants.back();  // Move to the right-most child
+      }
+    } else {
+      // No previous sibling, move up to the parent.
+      current = parent;
+    }
   }
+  return *this;
+}
+
+template <typename TYPE>
+typename Noeud<TYPE>::iterator Noeud<TYPE>::iterator::operator--(int i) {
+  iterator tmp(*this);
+  --(*this);
+  return tmp;
+}
+
+template <typename TYPE>
+bool Noeud<TYPE>::iterator::operator==(const Noeud<TYPE>::iterator &it) {
+  if (is_end && it.is_end)
+    return true;
+  if (is_end || it.is_end)
+    return false;
+  return current == it.current;
+}
+
+template <typename TYPE>
+bool Noeud<TYPE>::iterator::operator!=(const Noeud<TYPE>::iterator &it) {
+  return !(*this == it);
+}
+template <typename TYPE> TYPE &Noeud<TYPE>::iterator::operator*() {
+  // à implémenter
+  if (current == nullptr) {
+    throw std::out_of_range(
+        "L'itérateur est à la fin, aucune valeur à dereferencer");
+  }
+  return current->valeur;
 }
 
 #endif // TP4_NOEUD_H

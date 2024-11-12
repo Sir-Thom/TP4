@@ -47,7 +47,22 @@ void iterer(Noeud<int> *n) {
   }
   cout << endl;
 }
+void test_iterator(Noeud<int> &arbre) {
+  auto it = arbre.begin();
+  std::cout << "Parcours avant:" << std::endl;
+  while (it != arbre.end()) {
+    std::cout << *it << " ";
+    ++it;
+  }
 
+  std::cout << "\nParcours inverse:" << std::endl;
+  --it; // revenir au dernier élément
+  while (true) {
+    std::cout << *it << " ";
+    if (it == arbre.begin()) break;
+    --it;
+  }
+}
 /**
 Fait le parcours à partir du noeud n avec l'itérateur, à l'envers.
 **/
@@ -74,6 +89,22 @@ void testIterationInverse() {
     --it; // décrémente l'itérateur pour pointer vers l'élément précédent
   }
   std::cout << *it << std::endl; // affiche le premier élément
+}
+void teste_iterator(Noeud<int> &arbre) {
+  auto it = arbre.begin();
+  std::cout << "Parcours avant:" << std::endl;
+  while (it != arbre.end()) {
+    std::cout << *it << " ";
+    ++it;
+  }
+
+  std::cout << "\nParcours inverse:" << std::endl;
+  --it; // revenir au dernier élément
+  while (true) {
+    std::cout << *it << " ";
+    if (it == arbre.begin()) break;
+    --it;
+  }
 }
 
 int main() {
@@ -103,7 +134,8 @@ int main() {
 
   cout << "Test 2: iteration inverse." << endl;
   iterer_rev(racine);
-
+ // cout << "Test 2.5: custom" << endl;
+ // teste_iterator(*racine );
   cout << "Test 3: iteration d'un sous-arbre." << endl;
   iterer(n12);
 
