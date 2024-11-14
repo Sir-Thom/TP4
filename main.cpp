@@ -133,6 +133,7 @@ int main() {
   iterer(racine);
 
   cout << "Test 2: iteration inverse." << endl;
+  cout << "Root node: " << racine->val() << endl;
   iterer_rev(racine);
  // cout << "Test 2.5: custom" << endl;
  // teste_iterator(*racine );
