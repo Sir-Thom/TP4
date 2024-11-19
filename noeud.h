@@ -1,7 +1,6 @@
 #ifndef TP4_NOEUD_H
 #define TP4_NOEUD_H
 
-#include <algorithm>
 #include <iostream>
 #include <vector>
 
@@ -12,22 +11,37 @@ private:
     Noeud *parent; // parent du Noeud, possiblement nullptr
     std::vector<Noeud *> enfants; // liste des enfants du Noeud
 
-static Noeud<TYPE> *findRightmostNode(Noeud<TYPE> *node) {
-    if (!node) return nullptr; // Si le nœud est nul, on retourne nullptr
-
-    // Vérifier s'il y a des enfants avant de tenter d'y accéder
-    if (node->enfants.empty()) {
-        return node;  // Si le nœud n'a pas d'enfants, c'est un nœud de type feuille, retour de ce nœud
+    static size_t findChildIndex(Noeud<TYPE> *parent, Noeud<TYPE> *child) {
+        for (size_t i = 0; i < parent->enfants.size(); i++) {
+            if (parent->enfants[i] == child) {
+                return i;
+            }
+        }
+        throw std::runtime_error("Enfant non trouvé dans les enfants du parent.");
     }
 
-    // Sinon, on prend le dernier enfant du nœud
-    node = node->enfants.back();
-    return node;
-}
+    static Noeud<TYPE> *findPreviousSibling(Noeud<TYPE> *node) {
+        if (!node || !node->parent) return nullptr;
+
+        Noeud<TYPE> *parent = node->parent;
+
+        if (const size_t idx = findChildIndex(parent, node); idx > 0) {
+            return parent->enfants[idx - 1];
+        }
+        return nullptr;
+    }
+
+    static Noeud<TYPE> *findRightmostNode(Noeud<TYPE> *node) {
+        if (node->enfants.empty()) {
+            return node;
+        }
+        node = node->enfants.back();
+        return node;
+    }
 
     static Noeud<TYPE> *findLeftmostLeaf(Noeud<TYPE> *node) {
         while (!node->enfants.empty()) {
-            node = node->enfants[0];
+            node = node->enfants.front();
         }
         return node;
     }
@@ -79,9 +93,58 @@ private:
     // membres Je recommande de maintenir au moins 3 variables: le noeud qui a
     // initié l'itération, le noeud courant, un bool qui dit si on est à end ou
     // pas.
-    // pour plus tard quand sa va marcher
-    // Trouve le nœud suivant dans le parcours post-ordre pour plus tard quand sa
-    // va marcher
+
+    Noeud<TYPE> *findNextPostOrderNode(Noeud<TYPE> *node) {
+        if (!node) return nullptr;
+        if (node == root) return nullptr;
+
+        Noeud<TYPE> *parent = node->parent;
+
+        if (!parent) return nullptr;
+        if (const size_t idx = findChildIndex(parent, node); idx + 1 < parent->enfants.size()) {
+            return findLeftmostLeaf(parent->enfants[idx + 1]);
+        }
+        return parent;
+    }
+
+    Noeud<TYPE> *findPreviousInversePostOrderNode(Noeud<TYPE> *node) {
+        Noeud<TYPE> *parent = current->parent;
+        // Cas 1: Si le nœud courant est la racine sans enfants
+        if (!parent && current->enfants.empty()) {
+            is_end = true;
+            current = nullptr;
+            return current;
+        }
+
+        // Cas 2: Si on est sur un parent, descendre à son enfant le plus à droite
+        if (!current->enfants.empty()) {
+            current = findRightmostNode(current);
+            return current;
+        }
+        //Cas 3: dans une feuille
+        while (parent) {
+            size_t currentIndex = 0;
+            for (size_t i = 0; i < parent->enfants.size(); i++) {
+                if (parent->enfants[i] == current) {
+                    currentIndex = i;
+                    break;
+                }
+            }
+            if (currentIndex > 0) {
+                current = parent->enfants[currentIndex - 1];
+                return current;
+            }
+            current = parent;
+            parent = parent->parent;
+        }
+
+        if (current == root) {
+            is_end = true;
+            current = nullptr;
+        }
+        return nullptr;
+    }
+
 public:
     // À ajouter: constructeurs, destructeur, constructeur par copie (seulement si
     explicit iterator(Noeud<TYPE> *start);
@@ -216,7 +279,6 @@ void Noeud<TYPE>::afficher_postordre() const {
  */
 template<typename TYPE>
 typename Noeud<TYPE>::iterator Noeud<TYPE>::begin() {
-    // À implémenter
     return iterator(this);
 }
 
@@ -226,7 +288,6 @@ typename Noeud<TYPE>::iterator Noeud<TYPE>::begin() {
  */
 template<typename TYPE>
 typename Noeud<TYPE>::iterator Noeud<TYPE>::end() {
-    // À implémenter
     return iterator(this, true);
 }
 
@@ -249,7 +310,13 @@ monnoeud->end()++ n’est pas défini.*/
 
 template<typename TYPE>
 Noeud<TYPE>::iterator::iterator(Noeud<TYPE> *start)
-    : root(start), current(start), is_end(false) {
+    : current(start), root(start), is_end(false) {
+    if (current == nullptr || (current->enfants.empty() && current->parent == nullptr)) {
+        // If the tree is empty, set to 'end' state
+        is_end = true;
+    } else if (current->enfants.empty()) {
+        current = root;
+    }
     if (current) {
         while (!current->enfants.empty()) {
             current = current->enfants[0];
@@ -258,45 +325,21 @@ Noeud<TYPE>::iterator::iterator(Noeud<TYPE> *start)
 }
 
 template<typename TYPE>
-Noeud<TYPE>::iterator::iterator(Noeud<TYPE> *start, bool is_end)
-    : root(start), current(findLeftmostLeaf(start)), is_end(is_end) {
+Noeud<TYPE>::iterator::iterator(Noeud<TYPE> *start, const bool is_end)
+    : current(is_end ? nullptr : findLeftmostLeaf(start)), root(start), is_end(is_end) {
 }
 
 template<typename TYPE>
 typename Noeud<TYPE>::iterator &Noeud<TYPE>::iterator::operator++() {
     if (is_end) {
-        current = findLeftmostLeaf(root);
-        is_end = false;
         return *this;
     }
 
-    if (current == nullptr) {
-        return *this;
-    }
-    if (current == root) {
-        current = nullptr;
+    current = findNextPostOrderNode(current);
+    if (!current) {
         is_end = true;
-        return *this;
-    }
-    Noeud<TYPE> *parent = current->parent;
-
-    if (parent == nullptr) {
-        // Si le nœud actuel est la racine du sous-arbre, on marque l'itérateur comme étant à la fin
         current = nullptr;
-        is_end = true;
-        return *this;
     }
-    size_t idx = 0;
-    while (idx < parent->enfants.size() && parent->enfants[idx] != current) {
-        idx++;
-    }
-
-    if (idx + 1 < parent->enfants.size()) {
-        current = findLeftmostLeaf(parent->enfants[idx + 1]);
-    } else {
-        current = parent;
-    }
-
     return *this;
 }
 
@@ -305,82 +348,21 @@ typename Noeud<TYPE>::iterator Noeud<TYPE>::iterator::operator++(int i) {
     iterator tmp(*this);
     ++(*this);
     return tmp;
-}
+};
 
 template<typename TYPE>
 typename Noeud<TYPE>::iterator &Noeud<TYPE>::iterator::operator--() {
     if (is_end) {
-        // Initialisation du parcours inverse
         current = root;
         is_end = false;
-
-        // Aller au descendant le plus à droite
-        current = findRightmostNode(current);
         return *this;
     }
-
-    if (current == nullptr) {
-        std::cerr << "Erreur : current est nullptr." << std::endl;
-        return *this;
-    }
-
-    Noeud<TYPE> *parent = current->parent;
-
-    // Si on est sur un nœud avec des enfants, descendre au plus à droite
-    if (!current->enfants.empty()) {
-        current = findRightmostNode(current);
-    } else if (parent != nullptr) {
-        // Si on est sur une feuille, remonter au parent
-        size_t current_index = -1;
-        size_t nb_enfants = parent->get_nb_enfants();
-
-        // Trouver l'index actuel parmi les enfants du parent
-        for (size_t i = 0; i < nb_enfants; ++i) {
-            if (parent->get_enfant(i) == current) {
-                current_index = i;
-                break;
-            }
-        }
-
-        if (current_index == -1) {
-            // Erreur : current n'est pas un enfant valide de son parent
-            std::cerr << "Erreur : current n'est pas un enfant valide de son parent." << std::endl;
-            return *this;
-        }
-
-        // Si on est sur un enfant et que ce n'est pas le premier
-        if (current_index > 0) {
-            // Descendre dans l'enfant précédent (en ordre inverse)
-            current = parent->get_enfant(current_index - 1);
-            current = findRightmostNode(current);
-        } else {
-            // Si on est au premier enfant, remonter au parent
-            // Si on est à 9, on doit remonter à 12
-            current = parent;
-
-            // Vérifier si le parent a un autre enfant
-            size_t next_sibling_index = current_index + 1;
-            if (next_sibling_index < nb_enfants) {
-                // Si le parent a un autre enfant, on se déplace vers cet enfant
-                current = parent->get_enfant(next_sibling_index);
-                current = findRightmostNode(current);
-            } else {
-                // Si aucun autre enfant, remonter encore plus haut (ou terminer)
-                current = parent->parent;
-                if (current == nullptr) {
-                    is_end = true; // Si on atteint la racine et il n'y a plus d'enfants, on termine
-                }
-            }
-        }
-    } else {
-        // Si on atteint la racine, marquer comme fin
-        current = nullptr;
+    current = findPreviousInversePostOrderNode(current);
+    if (!current) {
         is_end = true;
     }
-
     return *this;
-    }
-
+}
 
 
 template<typename TYPE>
@@ -406,11 +388,15 @@ bool Noeud<TYPE>::iterator::operator!=(const Noeud<TYPE>::iterator &it) {
 
 template<typename TYPE>
 TYPE &Noeud<TYPE>::iterator::operator*() {
-    // à implémenter
-    if (current == nullptr) {
+    // si il y seulement un noeud
+    if (current == nullptr && root != nullptr) {
+        return root->valeur;
+    }
+    if (current == nullptr || root == nullptr) {
         throw std::out_of_range(
             "L'itérateur est à la fin, aucune valeur à dereferencer");
     }
+
     return current->valeur;
 }
 
