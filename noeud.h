@@ -61,24 +61,20 @@ public:
 
     Noeud &operator=(const Noeud &source); // affectateur (copie de la source)
 
-    TYPE &
-    val(); // retourne une référence MODIFIABLE vers la valeur associée au Noeud.
-    Noeud *
-    get_enfant(size_t i); // retourne le i-ème enfant (le premier est indicé à 0)
+    TYPE &val(); // retourne une référence MODIFIABLE vers la valeur associée au Noeud.
+    Noeud *get_enfant(size_t i); // retourne le i-ème enfant (le premier est indicé à 0)
     size_t get_nb_enfants() const; // retourne le nombre d'enfants du Noeud
     Noeud *ajouter_enfant(const TYPE &val); // créé un enfant ajouté à la fin de
     // la liste d'enfants, et le retourne
 
-    void supprimer_enfant(
-        size_t i); // supprime tout le sous-arbre enraciné en le i-ème enfant.
+    void supprimer_enfant(size_t i); // supprime tout le sous-arbre enraciné en le i-ème enfant.
 
     iterator begin(); // retourne un itérateur postordre sur l'arbre
     iterator end(); // retourne l'itérateur pointant sur la fin (et la fin n'est
     // PAS un élément)
 
-    void afficher_postordre()
-    const; // fait un parcours postordre RÉCURSIF en affichant les valeurs
-    // dans l'ordre.  Pour tester.
+    void afficher_postordre() const; // fait un parcours postordre RÉCURSIF en affichant les
+    // valeurs dans l'ordre.  Pour tester.
 };
 
 // Déclaration de la classe itérateur.
@@ -121,7 +117,7 @@ private:
             current = findRightmostNode(current);
             return current;
         }
-        //Cas 3: dans une feuille
+        // Cas 3: dans une feuille
         while (parent) {
             size_t currentIndex = 0;
             for (size_t i = 0; i < parent->enfants.size(); i++) {
@@ -142,7 +138,7 @@ private:
             is_end = true;
             current = nullptr;
         }
-        return nullptr;
+        return current;
     }
 
 public:
@@ -152,18 +148,13 @@ public:
     iterator(Noeud<TYPE> *start, bool is_end);
 
     iterator &operator++(); // incrémente l'itérateur.
-    iterator
-    operator++(int i); // incrémente l'itérateur.  Le paramètre i est inutile.
+    iterator operator++(int i); // incrémente l'itérateur.  Le paramètre i est inutile.
     iterator &operator--(); // décrémente l'itérateur.
-    iterator
-    operator--(int i); // décrémente l'itérateur.  Le paramètre i est inutile.
+    iterator operator--(int i); // décrémente l'itérateur.  Le paramètre i est inutile.
 
-    TYPE &
-    operator*(); // retourne la valeur associée au Noeud pointé par l'itérateur
-    bool
-    operator==(const Noeud::iterator &it); // vérifie si l'itérateur est égal à it
-    bool operator!=(
-        const Noeud::iterator &it); // vérifie si l'itérateur est différent de it
+    TYPE &operator*(); // retourne la valeur associée au Noeud pointé par l'itérateur
+    bool operator==(const Noeud::iterator &it); // vérifie si l'itérateur est égal à it
+    bool operator!=(const Noeud::iterator &it); // vérifie si l'itérateur est différent de it
 };
 
 /********************************************************
@@ -192,8 +183,7 @@ Affectateur =.  this devient une copie de source.
 **/
 template<typename TYPE>
 Noeud<TYPE> &Noeud<TYPE>::operator=(const Noeud &source) {
-    if (this == &source)
-        return *this;
+    if (this == &source) return *this;
 
     this->valeur = source.valeur;
     for (size_t i = 0; i < source.get_nb_enfants(); i++) {
@@ -236,7 +226,9 @@ Noeud<TYPE> *Noeud<TYPE>::ajouter_enfant(const TYPE &valeur) {
  * modifier val.
  */
 template<typename TYPE>
-TYPE &Noeud<TYPE>::val() { return valeur; }
+TYPE &Noeud<TYPE>::val() {
+    return valeur;
+}
 
 /**
  * Retourne le nombre d'enfants du Noeud.
@@ -309,10 +301,8 @@ l’incrémentation pré-fixe et l’incrémentation post-fixe. Le comportement 
 monnoeud->end()++ n’est pas défini.*/
 
 template<typename TYPE>
-Noeud<TYPE>::iterator::iterator(Noeud<TYPE> *start)
-    : current(start), root(start), is_end(false) {
+Noeud<TYPE>::iterator::iterator(Noeud<TYPE> *start) : current(start), root(start), is_end(false) {
     if (current == nullptr || (current->enfants.empty() && current->parent == nullptr)) {
-        // If the tree is empty, set to 'end' state
         is_end = true;
     } else if (current->enfants.empty()) {
         current = root;
@@ -353,17 +343,20 @@ typename Noeud<TYPE>::iterator Noeud<TYPE>::iterator::operator++(int i) {
 template<typename TYPE>
 typename Noeud<TYPE>::iterator &Noeud<TYPE>::iterator::operator--() {
     if (is_end) {
-        current = root;
+        current = findRightmostNode(root);;
         is_end = false;
         return *this;
     }
+
+
     current = findPreviousInversePostOrderNode(current);
     if (!current) {
         is_end = true;
+        current = nullptr;
+        return *this;
     }
     return *this;
 }
-
 
 template<typename TYPE>
 typename Noeud<TYPE>::iterator Noeud<TYPE>::iterator::operator--(int i) {
@@ -374,10 +367,8 @@ typename Noeud<TYPE>::iterator Noeud<TYPE>::iterator::operator--(int i) {
 
 template<typename TYPE>
 bool Noeud<TYPE>::iterator::operator==(const Noeud<TYPE>::iterator &it) {
-    if (is_end && it.is_end)
-        return true;
-    if (is_end || it.is_end)
-        return false;
+    if (is_end && it.is_end) return true;
+    if (is_end || it.is_end) return false;
     return current == it.current;
 }
 
@@ -393,11 +384,10 @@ TYPE &Noeud<TYPE>::iterator::operator*() {
         return root->valeur;
     }
     if (current == nullptr || root == nullptr) {
-        throw std::out_of_range(
-            "L'itérateur est à la fin, aucune valeur à dereferencer");
+        throw std::out_of_range("L'itérateur est à la fin, aucune valeur à dereferencer");
     }
 
     return current->valeur;
 }
 
-#endif // TP4_NOEUD_H
+#endif  // TP4_NOEUD_H
