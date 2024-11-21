@@ -328,7 +328,6 @@ typename Noeud<TYPE>::iterator &Noeud<TYPE>::iterator::operator++() {
     current = findNextPostOrderNode(current);
     if (!current) {
         is_end = true;
-        current = nullptr;
     }
     return *this;
 }
@@ -342,18 +341,14 @@ typename Noeud<TYPE>::iterator Noeud<TYPE>::iterator::operator++(int i) {
 
 template<typename TYPE>
 typename Noeud<TYPE>::iterator &Noeud<TYPE>::iterator::operator--() {
-    if (is_end) {
-        current = findRightmostNode(root);;
+    if (is_end && root != nullptr) {
+        current = root;
         is_end = false;
-        return *this;
+    } else if (!is_end) {
+        current = findPreviousInversePostOrderNode(current);
     }
-
-
-    current = findPreviousInversePostOrderNode(current);
     if (!current) {
         is_end = true;
-        current = nullptr;
-        return *this;
     }
     return *this;
 }

@@ -20,7 +20,8 @@ struct Personne {
     string province;
     string ville;
 
-    Personne() : Personne(0, "", "") {}
+    Personne() : Personne(0, "", "") {
+    }
 
     Personne(int id, string province, string ville) {
         this->id = id;
@@ -30,10 +31,10 @@ struct Personne {
 };
 
 void afficher_populations(vector<Personne> &personnes) {
-    set<int> ids;                                // Pour détecter les identifiants dupliqués
-    map<pair<string, string>, int> populations;  // Pour compter les personnes par ville
+    set<int> ids; // Pour détecter les identifiants dupliqués
+    map<pair<string, string>, int> populations; // Pour compter les personnes par ville
 
-    for (const auto &personne : personnes) {
+    for (const auto &personne: personnes) {
         // Vérifier les identifiants dupliqués
         if (ids.find(personne.id) != ids.end()) {
             cout << "ERREUR : il y a un identifiant répété." << endl;
@@ -49,10 +50,11 @@ void afficher_populations(vector<Personne> &personnes) {
     }
 
     // Afficher les résultats
-    for (const auto &entry : populations) {
+    for (const auto &entry: populations) {
         cout << entry.first.first << ", " << entry.first.second << " : " << entry.second << endl;
     }
 }
+
 /***********************************************************
 Code pour les tests de la Partie 1 et 2
 ***********************************************************/
@@ -67,6 +69,91 @@ void iterer(Noeud<int> *n) {
     cout << endl;
 }
 
+void testCasLimitesIterateur() {
+    std::cout << "Tests de Cas Limites pour l'Itérateur:" << std::endl;
+
+    // Test 7 : Arbre à un seul nœud
+    {
+        Noeud<int> *noeudUnique = new Noeud<int>(42);
+        auto it = noeudUnique->begin();
+
+        std::cout << "Tests 7 d'Arbre à Un Nœud:" << std::endl;
+        std::cout << "Valeur du début: " << *it << std::endl;
+        std::cout << "Début == Fin: " << (it == noeudUnique->end()) << std::endl;
+
+        ++it;
+        std::cout << "Incrémenter à la fin: " << (it == noeudUnique->end()) << std::endl;
+
+        it = noeudUnique->end();
+        --it;
+        std::cout << "Décrémenter depuis la fin: " << *it << std::endl;
+
+        delete noeudUnique;
+    }
+
+    // Test 8 : Arbre profond
+    {
+        Noeud<int> *arbreProfond = new Noeud<int>(0);
+        Noeud<int> *courant = arbreProfond;
+        for (int i = 1; i <= 10; ++i) {
+            courant = courant->ajouter_enfant(i);
+        }
+
+        std::cout << "\nTests 8 de Traversée d'Arbre Profond:" << std::endl;
+        auto it = arbreProfond->begin();
+        std::cout << "Premier élément (devrait être le dernier enfant de la branche la plus profonde): " << *it <<
+                std::endl;
+
+        it = arbreProfond->end();
+        --it;
+        std::cout << "Dernier élément avant la fin (devrait être la racine): " << *it << std::endl;
+
+        delete arbreProfond;
+    }
+
+    // Test 9 : Incrémentations/décrémentations multiples près des limites
+    {
+        Noeud<int> *arbreComplexe = new Noeud<int>(13);
+        auto n3 = arbreComplexe->ajouter_enfant(3);
+        auto n12 = arbreComplexe->ajouter_enfant(12);
+        n3->ajouter_enfant(1);
+        n3->ajouter_enfant(2);
+        n12->ajouter_enfant(4);
+
+
+        std::cout << "\nTests 9 de Navigation aux Limites:" << std::endl;
+        auto it = arbreComplexe->begin();
+
+        // Incrémentations multiples
+        ++it;
+        ++it;
+        ++it;
+        std::cout << "Après plusieurs incrémentations: " << *it << std::endl;
+
+        // Décrémentations multiples
+        --it;
+        --it;
+        std::cout << "Après plusieurs décrémentations: " << *it << std::endl;
+
+        // Changement de limites
+        it = arbreComplexe->end();
+        --it;
+        std::cout << "Dernier élément avant la fin: " << *it << std::endl;
+
+        delete arbreComplexe;
+    }
+    // test 10 : Arbre vide
+    {
+        cout << "Test 10: Arbre vide." << endl;
+        Noeud<int> *arbre_vide = nullptr;
+        try {
+            iterer(arbre_vide);
+        } catch (std::exception &e) {
+            std::cout << "Handled empty tree: " << e.what() << std::endl;
+        }
+    }
+}
+
 void test_iterator(Noeud<int> &arbre) {
     auto it = arbre.begin();
     std::cout << "Parcours avant:" << std::endl;
@@ -76,7 +163,7 @@ void test_iterator(Noeud<int> &arbre) {
     }
 
     std::cout << "\nParcours inverse:" << std::endl;
-    --it;  // revenir au dernier élément
+    --it; // revenir au dernier élément
     while (true) {
         std::cout << *it << " ";
         if (it == arbre.begin()) --it;
@@ -93,7 +180,7 @@ void iterer_rev(Noeud<int> *n) {
         cout << (*itrev) << " ";
         itrev--;
     }
-    cout << (*itrev);  // pour ne pas manquer le begin()
+    cout << (*itrev); // pour ne pas manquer le begin()
     cout << endl;
 }
 
@@ -103,12 +190,12 @@ void testIterationInverse() {
     Noeud<int> *n2 = racine->ajouter_enfant(2);
 
     Noeud<int>::iterator it = racine->end();
-    --it;  // décrémente l'itérateur pour pointer vers le dernier élément
+    --it; // décrémente l'itérateur pour pointer vers le dernier élément
     while (it != racine->begin()) {
         std::cout << *it << std::endl;
-        --it;  // décrémente l'itérateur pour pointer vers l'élément précédent
+        --it; // décrémente l'itérateur pour pointer vers l'élément précédent
     }
-    std::cout << *it << std::endl;  // affiche le premier élément
+    std::cout << *it << std::endl; // affiche le premier élément
 }
 
 void teste_iterator(Noeud<int> &arbre) {
@@ -120,7 +207,7 @@ void teste_iterator(Noeud<int> &arbre) {
     }
 
     std::cout << "\nParcours inverse:" << std::endl;
-    --it;  // revenir au dernier élément
+    --it; // revenir au dernier élément
     while (true) {
         std::cout << *it << " ";
         if (it == arbre.begin()) break;
@@ -141,7 +228,7 @@ int main() {
 
     n12->ajouter_enfant(4);
     n12->ajouter_enfant(5);
-    n12->ajouter_enfant(7)->ajouter_enfant(6);  // oui ceci fonctionne
+    n12->ajouter_enfant(7)->ajouter_enfant(6); // oui ceci fonctionne
     n12->ajouter_enfant(8);
     Noeud<int> *n11 = n12->ajouter_enfant(11);
     n11->ajouter_enfant(9);
@@ -164,20 +251,19 @@ int main() {
     cout << "Test 4: iteration inverse d'un sous-arbre." << endl;
     iterer_rev(n12);
 
-    cout << "Test 5: un peu de va-et-vient." << endl;
-    {
+    cout << "Test 5: un peu de va-et-vient." << endl; {
         // les accolades pour limiter la portee de it
         Noeud<int>::iterator it = racine->begin();
-        it = ++(++it);  // 3
+        it = ++(++it); // 3
         cout << (*it) << " ";
         it--;
-        cout << (*it) << " ";  // 2
-        ++ ++ ++it;            // 5
+        cout << (*it) << " "; // 2
+        ++++++it; // 5
         cout << (*it) << " ";
-        -- --it;  // 3
+        ----it; // 3
         cout << (*it) << " ";
-        ++ ++ ++ ++it;
-        ++--++-- --it;  // 6
+        ++++++++it;
+        ++--++----it; // 6
         cout << (*it) << " ";
         it++;
         it++;
@@ -212,63 +298,7 @@ int main() {
     delete rcopie;
     cout << endl;
     // testes suplémentaire
-    cout << "Test 7: Arbre vide." << endl;
-    Noeud<int> *arbre_vide = nullptr;
-    try {
-        iterer(arbre_vide);  // devrait ne rien afficher
-    } catch (const std::exception &e) {
-        cout << "Erreur détectée : " << e.what();
-    }
-    // devrait donner 42 42
-    cout << "Test 8: Arbre avec un seul noeud.";
-    Noeud<int> *arbre_simple = new Noeud<int>(42);  // affiche la racine
-    iterer(arbre_simple);
-
-    iterer_rev(arbre_simple);
-    delete arbre_simple;
-
-    cout << "Test 9: Arbre profond." << endl;
-    Noeud<int> *arbre_profond = new Noeud<int>(0);
-    Noeud<int> *courant = arbre_profond;
-    for (int i = 1; i <= 100; ++i) {
-        courant = courant->ajouter_enfant(i);
-    }
-    iterer(arbre_profond);
-    iterer_rev(arbre_profond);
-    delete arbre_profond;
-
-    cout << "Test 10: Incrémentation et décrémentation des bornes." << endl;
-    // Créer un arbre simple avec des enfants    pour les tests
-    Noeud<int> *r = new Noeud<int>(13);
-    Noeud<int> *n1 = r->ajouter_enfant(3);
-    Noeud<int> *n2 = r->ajouter_enfant(12);
-
-    n1->ajouter_enfant(4);
-    n1->ajouter_enfant(5);
-    n2->ajouter_enfant(7)->ajouter_enfant(6);  // oui ceci fonctionne
-    n2->ajouter_enfant(8);
-    Noeud<int> *n101 = n2->ajouter_enfant(11);
-    n101->ajouter_enfant(9);
-    n101->ajouter_enfant(10);
-    // Tester l'incrémentation et décrémentation
-    Noeud<int>::iterator it_limit = r->begin();
-    cout << "Début : " << (*it_limit) << endl;
-    --it_limit;
-    cout << "Incrémentation depuis begin() : " << (*it_limit) << endl;
-    --it_limit;
-    // ici sa retourne à 13 si car si tu fait -1 au début je décide de l'envoyer à
-    // 13 qui est la fin
-    cout << "Incrémentation depuis begin() : " << (*it_limit) << endl;
-
-    it_limit = racine->end();
-    cout << "Fin atteinte ? " << (it_limit == racine->end() ? "oui" : "non") << endl;
-
-    ++it_limit;
-    cout << "Début : " << (*it_limit) << endl;
-    cout << "Décrémentation depuis end() : " << (it_limit == racine->end() ? "oui" : "non") << endl;
-
-    delete r;
-
+    testCasLimitesIterateur();
     delete racine;
 
     /**********************************
